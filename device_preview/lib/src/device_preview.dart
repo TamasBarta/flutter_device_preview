@@ -147,29 +147,40 @@ class DevicePreview extends StatefulWidget {
   /// Create a new [ThemeData] from the given [data], but with updated properties from
   /// the currently simulated device.
   static Widget appBuilder(BuildContext context, Widget? child) {
-    if (!_isEnabled(context)) {
-      return child!;
-    }
+    return appBuilderFromBuilder()(context, child);
+  }
 
-    final theme = Theme.of(context);
-    final isInitializedAndEnabled = context.select(
-      (DevicePreviewStore store) => store.state.maybeMap(
-        initialized: (initialized) => initialized.data.isEnabled,
-        orElse: () => false,
-      ),
-    );
+  /// Create a new [ThemeData] from the given [data], but with updated properties from
+  /// the currently simulated device.
+  static Widget Function(BuildContext context, Widget? child)
+      appBuilderFromBuilder([
+    Widget Function(BuildContext context, Widget? child)? builder,
+  ]) {
+    return (BuildContext context, Widget? child) {
+      if (!_isEnabled(context)) {
+        return builder?.call(context, child) ?? child!;
+      }
 
-    if (!isInitializedAndEnabled) {
-      return child!;
-    }
+      final theme = Theme.of(context);
+      final isInitializedAndEnabled = context.select(
+        (DevicePreviewStore store) => store.state.maybeMap(
+          initialized: (initialized) => initialized.data.isEnabled,
+          orElse: () => false,
+        ),
+      );
 
-    return Theme(
-      data: theme.copyWith(
-        platform: platform(context),
-        visualDensity: visualDensity(context),
-      ),
-      child: child!,
-    );
+      if (!isInitializedAndEnabled) {
+        return builder?.call(context, child) ?? child!;
+      }
+
+      return Theme(
+        data: theme.copyWith(
+          platform: platform(context),
+          visualDensity: visualDensity(context),
+        ),
+        child: builder?.call(context, child) ?? child!,
+      );
+    };
   }
 
   /// Indicates whether the device preview is currently enabled.
